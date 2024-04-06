@@ -1,0 +1,7 @@
+{
+  "contractAddress": "0x2B9a53ea0DA540bCc014C2c628b3DF1CAd6B05DE",
+  "serverPort": 9999,
+  "serverIP": "0.0.0.0",
+  "accessPointId": "AE1",
+  "web3ProviderUrl": "HTTP://172.31.100.178:7545"
+}
