@@ -88,7 +88,7 @@ export default {
       this.$router.push('/LogIn');
     },
 
-    async Transfer() {
+    Transfer() {
       this.transferFrom.receiverAddress = null;
       this.transferFrom.amount = null;
       this.transferFlag = true
