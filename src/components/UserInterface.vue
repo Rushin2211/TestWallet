@@ -175,21 +175,18 @@ export default {
     },
 
     async mounted() {
-        this.accountAddress = web3.eth.accounts.privateKeyToAccount(userPrivateKey).address
+      try {
+        this.accountAddress = await web3.eth.accounts.privateKeyToAccount(userPrivateKey).address
+      }catch (error) {
+        this.showError("File to obtain the account address: " + error)
+      }
 
-        try {
-            this.accountBalance = this.getBalance(this.accountAddress)
-                .then((balance) => {
-                    this.accountBalance = balance;
-                    localStorage.setItem("accountBalance", balance);
-                })
-                .catch((error) => {
-                    console.error('Failed to obtain account balance:', error);
-                    this.isLoading = false; // Set isLoading to false even if an error occurs
-                });
-        } catch (error) {
-            console.error('An error occurred:', error);
-        }
+      try {
+        this.accountBalance = await this.getBalance(this.accountAddress)
+      }catch (error) {
+        this.showError("File to obtain the account balance: " + error)
+      }
+
     }
 };
 </script>
@@ -210,6 +207,10 @@ export default {
 
 #accountBalance {
     font-size: 18px;
+}
+
+hr {
+  width: 600px;
 }
 
 #transferBtn {
