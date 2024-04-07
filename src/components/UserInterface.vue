@@ -88,7 +88,7 @@ export default {
       this.$router.push('/LogIn');
     },
 
-    Transfer() {
+    async Transfer() {
       this.transferFrom.receiverAddress = null;
       this.transferFrom.amount = null;
       this.transferFlag = true
@@ -123,8 +123,10 @@ export default {
       }
 
       try {
+        const txCount = await web3.eth.getTransactionCount(this.accountAddress);
+
         const txObject = {
-          nonce: web3.eth.getTransactionCount(this.Address),
+          nonce: txCount,
           gasPrice: web3.utils.toWei('3', 'gwei'),
           gasLimit: 300000,
           to: this.transferFrom.receiverAddress,
