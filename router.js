@@ -1,7 +1,9 @@
 import WelcomeToUse from '@/components/WelcomeToUse.vue'
 import LogIn from '@/components/LogIn.vue'
 import UserInterface from '@/components/UserInterface.vue'
+import AdminInterface from '@/components/AdminInterface.vue'
 import CreateAccount from '@/components/CreateAccount.vue'
+import AuctionInfo from '@/components/AuctionInfo.vue'
 import TestPage from "@/components/TestPage.vue"
 import {createRouter, createWebHashHistory} from "vue-router";
 
@@ -25,9 +27,21 @@ const routes = [
     },
 
     {
+        path: '/AdminInterface',
+        name: 'AdminInterface',
+        component: AdminInterface
+    },
+
+    {
         path: '/CreateAccount',
         name: 'CreateAccount',
         component: CreateAccount
+    },
+
+    {
+        path: '/AuctionInfo',
+        name: 'AuctionInfo',
+        component: AuctionInfo
     },
 
     {
