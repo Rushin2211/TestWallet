@@ -83,7 +83,6 @@ const savedUserPrivateKey = localStorage.getItem("userPrivateKey");
 
 const savedAdminPrivateKey = localStorage.getItem("adminPrivateKey");
 
-// const contractAddress = "0x1C62050BBb30CdbfcE0149dc95313094Ea993234";
 const contractAddress = data.contractAddress;
 
 const sonyAbi = require("../script/sony.json");
@@ -227,13 +226,9 @@ export default {
                 } else if (userPrivateKeyValue !== savedUserPrivateKey &&
                     this.validateEthereumAddress(userPrivateKeyValue) && !remember) {
 
-                    // alert(savedUserPrivateKey)
-
                     localStorage.removeItem("userTemporaryPrivateKey");
 
                     localStorage.setItem("userTemporaryPrivateKey", userPrivateKeyValue);
-
-                    // alert('userTemporaryPrivateKey: ' + userPrivateKeyValue)
 
                     localStorage.removeItem("Role");
 
@@ -266,8 +261,6 @@ export default {
                     localStorage.removeItem("userTemporaryPrivateKey");
 
                     localStorage.setItem("userTemporaryPrivateKey", userPrivateKeyValue);
-
-                    // alert('userSavedPrivateKey: ' + userPrivateKeyValue)
 
                     localStorage.removeItem("Role");
 
@@ -498,9 +491,7 @@ export default {
 
         JudgmentAdminPrivateKey() {
             const SavedPrivateKey = localStorage.getItem("adminPrivateKey");
-            // alert('savedPrivateKey: ' + savedPrivateKey)
             const CurrentPrivateKey = localStorage.getItem("adminTemporaryPrivateKey");
-            // alert('currentPrivateKey: ' + currentPrivateKey)
 
             if (CurrentPrivateKey !== SavedPrivateKey && !remember) {
                 localStorage.removeItem("AdministratorPrivateKey");
@@ -540,6 +531,7 @@ export default {
             this.$router.push('/CreateAccount')
         },
 
+        // todo
         async verifyAdministratorStatus(address) {
             return await this.contractInstance.methods.authorized(address).call();
         },
@@ -659,7 +651,5 @@ hr {
     h1 {
         font-size: 40px; /* 固定标题字体大小 */
     }
-
 }
-
 </style>
