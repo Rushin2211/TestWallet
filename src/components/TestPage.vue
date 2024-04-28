@@ -374,12 +374,15 @@ export default {
     },
 
     async getOwnedAllNFT(address) {
+      this.availableForAuctionGroup.length = 0;
       this.ownedNFTGroup = await this.contractInstance.methods.getAccountNFTInfo(address).call();
       console.log(this.ownedNFTGroup);
       this.ownedNFTNumber = this.ownedNFTGroup.length;
       for (let i = 1; i < this.ownedNFTNumber + 1; i++){
-        const nftAuctionInfo = await this.contractInstance.methods.nftAuctionInfo(i).call();
+        const nftAuctionInfo = await this.contractInstance.methods.nftAuctionInfo(this.ownedNFTGroup[i - 1]).call();
+        console.log(nftAuctionInfo[5])
         if (nftAuctionInfo[5] === false) {
+          console.log(i - 1)
           this.availableForAuctionGroup.push(this.ownedNFTGroup[i - 1]);
         }
       }
