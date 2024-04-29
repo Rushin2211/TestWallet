@@ -190,7 +190,7 @@ export default {
 
     methods: {
         AuctionNFT() {
-            this.$router.push('/AuctionInfo')
+            this.$router.push('/TestPage1')
         },
 
         Exit() {

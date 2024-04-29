@@ -189,7 +189,7 @@ export default {
                         icon: "success",
                         title: "Welcome back!"
                     });
-                    setTimeout(this.NextPage, 600)
+                    setTimeout(this.UserInterfacePage, 600)
                 } else if (userPrivateKeyValue.trim() === "") {
                     const Toast = Swal.mixin({
                         toast: true,
@@ -250,7 +250,7 @@ export default {
                         title: "Login successfully!"
                     });
 
-                    setTimeout(this.NextPage, 600)
+                    setTimeout(this.UserInterfacePage, 600)
                 } else if (userPrivateKeyValue !== savedUserPrivateKey &&
                     this.validateEthereumAddress(userPrivateKeyValue) && remember) {
 
@@ -282,7 +282,7 @@ export default {
                         title: "Login successfully!"
                     });
 
-                    setTimeout(this.NextPage, 600)
+                    setTimeout(this.UserInterfacePage, 600)
                 } else {
                     const Toast = Swal.mixin({
                         toast: true,
@@ -476,9 +476,7 @@ export default {
 
         JudgmentPrivateKey() {
             const savedPrivateKey = localStorage.getItem("userPrivateKey");
-            // alert('savedPrivateKey: ' + savedPrivateKey)
             const currentPrivateKey = localStorage.getItem("userTemporaryPrivateKey");
-            // alert('currentPrivateKey: ' + currentPrivateKey)
 
             if (currentPrivateKey !== savedPrivateKey && !remember) {
                 localStorage.removeItem("PrivateKey");
@@ -519,19 +517,18 @@ export default {
             }
         },
 
-        NextPage() {
-            this.$router.push('/UserInterface')
+        UserInterfacePage() {
+            this.$router.push('/TestPage2')
         },
 
         AdminPage() {
-            this.$router.push('/AdminInterface')
+            this.$router.push('/TestPage')
         },
 
         CreateAccountPage() {
             this.$router.push('/CreateAccount')
         },
 
-        // todo
         async verifyAdministratorStatus(address) {
             return await this.contractInstance.methods.authorized(address).call();
         },

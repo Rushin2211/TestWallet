@@ -14,7 +14,7 @@
     "sweetalert2": "^11.10.5",
     "vue": "^3.2.13",
     "vue-router": "^4.2.5",
-    "web3": "^4.2.2",
+    "web3": "^4.8.0",
     "web3-validator": "^2.0.4"
   },
   "devDependencies": {

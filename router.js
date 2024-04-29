@@ -6,6 +6,7 @@ import CreateAccount from '@/components/CreateAccount.vue'
 import AuctionInfo from '@/components/AuctionInfo.vue'
 import TestPage from "@/components/TestPage.vue"
 import TestPage1 from "@/components/TestPage1.vue"
+import TestPage2 from "@/components/TestPage2.vue"
 import {createRouter, createWebHashHistory} from "vue-router";
 
 const routes = [
@@ -55,6 +56,12 @@ const routes = [
         path: '/TestPage1',
         name: 'TestPage1',
         component: TestPage1,
+    },
+
+    {
+        path: '/TestPage2',
+        name: 'TestPage2',
+        component: TestPage2,
     },
 
 ];

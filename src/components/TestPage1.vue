@@ -46,9 +46,7 @@
       <div class="auction-item" v-for="(item, index) in Object.keys(this.auctionedNFTsInfoMap)" :key="index">
         <div class="item-header">
           <br/>
-          <h3>NFT ID: {{ item }}</h3>
-          <p>AP ID: {{ this.auctionedNFTsInfoMap[item].ApId }}</p>
-          <p>NFT Duration: {{ DurationTime(this.auctionedNFTsInfoMap[item].nftDuration) }}</p>
+          <h2>NFT ID: {{ item }}</h2>
         </div>
         <div class="item-details">
           <div class="beneficiary-container">
@@ -58,7 +56,7 @@
               <i class="fas fa-copy"></i> Copy
             </button>
           </div>
-          <p>Starting Price: {{ this.auctionedNFTsInfoMap[item].startingPrice }}ETH</p>
+          <p>Starting Price: {{ this.auctionedNFTsInfoMap[item].bottomPrice }}ETH</p>
           <div class="highestBidders-container">
             <p> Highest Bidder: {{ this.truncateAddress(this.auctionedNFTsInfoMap[item].highestBidder) }}</p>
             <button @click="copyToClipboard(this.auctionedNFTsInfoMap[item].highestBidder)"
@@ -66,13 +64,13 @@
               <i class="fas fa-copy"></i> Copy
             </button>
           </div>
-          <p>Highest Price: {{ this.auctionedNFTsInfoMap[item].highestPrice }}ETH</p>
+          <p>Highest Price: {{ Number(this.auctionedNFTsInfoMap[item].highestBid) / 10**18 }} ETH</p>
           <p>Auction End Time: {{
               this.convertUnixTimestamp(Number(this.auctionedNFTsInfoMap[item].auctionEndTime))
             }}</p>
 
           <div v-if="this.auctionedNFTsInfoMap[item].refundPending!==0">
-            <p>Your Pending Refund: {{ this.auctionedNFTsInfoMap[item].refundPending }}ETH</p>
+            <p>Your Pending Refund: {{ Number(this.auctionedNFTsInfoMap[item].refundPending) /10**18 }} ETH</p>
           </div>
         </div>
 
@@ -80,7 +78,7 @@
           <button @click="Bid(item)"
                   v-if="this.isBidDisabled||
                   new Date().getTime() / 1000>this.auctionedNFTsInfoMap[item].auctionEndTime||
-                  this.auctionedNFTsInfoMap[item].highestBidder===this.address"
+                  this.auctionedNFTsInfoMap[item].highestBidder===this.accountAddress"
                   class="bid-button-disable" disabled>Bid
           </button>
           <button @click="Bid(item)" v-else class="bid-button">Bid</button>
@@ -125,6 +123,11 @@ const contractAddress = data.contractAddress;
 const contractAbi = require("../script/sony.json");
 export default {
   name: "AuctionInfo",
+  computed: {
+    web3() {
+      return web3
+    }
+  },
   data() {
     return {
       currentAuctionNFTs: [],
@@ -137,18 +140,26 @@ export default {
 
       currentAuctionNFTsResult: [],
 
-      nftIds: Array,
-      noAuctionNFT: false,
-      allAuctionNFTNumber: null,
-      isBidDisabled: false,
-      isWithdrawDisabled: false,
-      isEndAuctionDisabled: false,
-      Role: '',
-      privateKey: '',
       auctionedNFTsInfoMap: {},
+
+      noAuctionNFT: false,
+
+      isBidDisabled: false,
+
+      isWithdrawDisabled: false,
+
+      isEndAuctionDisabled: false,
+
+      Role: '',
+
+      privateKey: '',
+
       isBidding: false,
+
       isWithdraw: false,
+
       isEndAuction: false,
+
       accountBalance:null,
     }
   },
@@ -170,22 +181,9 @@ export default {
         });
     this.contractInstance = await this.createContractInstance(contractAbi, contractAddress);
     await this.getCurrentAuctionNFTs(this.address);
-
-    this.DurationTime()
   },
 
   methods: {
-    DurationTime(Duration) {
-      for(let i = 0; i < this.allAuctionNFTNumber; i++) {
-        const DurationTime = Number(Duration);
-
-        const DurationTime_Day = Math.trunc(DurationTime / 86400)
-        const DurationTime_Hour = (DurationTime - DurationTime_Day * 86400) / 3600
-
-        return DurationTime_Day + 'D' + ' ' + DurationTime_Hour + 'h'
-      }
-    },
-
     async getBalance(address) {
       try {
         const balanceWei = await web3.eth.getBalance(address);
@@ -218,7 +216,6 @@ export default {
       });
     },
 
-    // todo
     async getCurrentAuctionNFTs() {
       await this.fetchCurrentAuctionNFTs();
       setInterval(async () => {
@@ -226,17 +223,31 @@ export default {
       }, 5000);
     },
 
-    // todo
     async fetchCurrentAuctionNFTs() {
       this.currentAuctionNFTs = await this.contractInstance.methods.getAuctionNFTList().call()
       this.currentAuctionNFTs.sort(function(a, b) {
         return Number(a - b);
       });
-      console.log(this.currentAuctionNFTs)
       this.auctionNFTNumber = this.currentAuctionNFTs.length;
-      for(let i = 1; i < this.auctionNFTNumber + 1; i++) {
-        const currentAuctionNFTs = await this.contractInstance.methods.nftAuctionInfo(i).call()
-        console.log(currentAuctionNFTs)
+      for(let i = 0; i < this.auctionNFTNumber; i++) {
+        const tokenId = this.currentAuctionNFTs[i];
+        const currentAuctionNFTs = await this.contractInstance.methods.nftAuctionInfo(tokenId).call();
+
+        const beneficiary = currentAuctionNFTs[0];
+        const auctionEndTime = currentAuctionNFTs[1];
+        const bottomPrice = currentAuctionNFTs[2];
+        const highestBidder = currentAuctionNFTs[3];
+        const highestBid = currentAuctionNFTs[4];
+        const address = this.accountAddress;
+        const refundPending = await this.contractInstance.methods.getPendingReturns(tokenId, address).call();
+        this.auctionedNFTsInfoMap[tokenId] = {
+          beneficiary,
+          auctionEndTime,
+          bottomPrice,
+          highestBidder,
+          highestBid,
+          refundPending
+        }
       }
 
     },
@@ -260,31 +271,41 @@ export default {
           }
         });
         if (bidAmount.isConfirmed) {
-          if (bidAmount.value <= this.auctionedNFTsInfoMap[tokenId].startingPrice) {
+          const highestBid = Number(this.auctionedNFTsInfoMap[tokenId].highestBid) / 10**18;
+          const bottomPrice = Number(this.auctionedNFTsInfoMap[tokenId].bottomPrice);
+
+          if (Number(bidAmount.value) <= bottomPrice) {
             this.showError("Your bid must be greater than the starting bid!");
             return;
           }
-          if (bidAmount.value + this.auctionedNFTsInfoMap[tokenId].refundPending <=
-              this.auctionedNFTsInfoMap[tokenId].highestPrice) {
+          if (Number(bidAmount.value) <= highestBid) {
             this.showError("Your bid must be greater than the current highest bid!");
             return
           }
+
           this.isBidding = true;
-          const txCount = await web3.eth.getTransactionCount(this.address);
+          const address = this.accountAddress;
+          const refundPending = await this.contractInstance.methods.getPendingReturns(tokenId, address).call();
+          const bidValue = web3.utils.toBigInt(Number(bidAmount.value) * 10**18)
+          const deductionAmount = (bidValue - refundPending).toString();
+
+          const txCount = await web3.eth.getTransactionCount(address);
           const bidInstance = this.contractInstance.methods.bid(Number(tokenId));
           const bidInstanceABI = bidInstance.encodeABI();
           const txObject = {
             nonce: txCount,
             to: contractAddress,
-            value: web3.utils.toWei(Number(bidAmount.value), 'ether'),
+            value: deductionAmount,
             gasLimit: 3000000,
             gasPrice: web3.utils.toWei('2', 'gwei'),
             data: bidInstanceABI
           };
+          console.log("txObject", txObject)
           const signed = await web3.eth.accounts.signTransaction(txObject, this.privateKey);
           await web3.eth.sendSignedTransaction(signed.rawTransaction);
-          await this.fetchCurrentAuctionNFTs(this.address);
+          await this.fetchCurrentAuctionNFTs(this.accountAddress);
           this.isBidding = false;
+
           Swal.fire({
             position: "center",
             icon: "success",
@@ -293,7 +314,6 @@ export default {
             timer: 2500
           });
         }
-
       } catch (error) {
         console.error("Error:", error.message);
         const Toast = Swal.mixin({
@@ -312,7 +332,7 @@ export default {
           title: "Bid failed, please try again! Error message: " + error.message
         });
       } finally {
-        this.accountBalance = this.getBalance(this.address)
+        this.accountBalance = this.getBalance(this.accountAddress)
             .then((balance) => {
               this.accountBalance = balance;
             })
@@ -502,9 +522,9 @@ export default {
 
     goBack() {
       if (this.Role === 'admin') {
-        this.$router.push('/AdminInterface')
+        this.$router.push('/TestPage')
       } else {
-        this.$router.push('/UserInterface')
+        this.$router.push('/TestPage2')
       }
     },
 
