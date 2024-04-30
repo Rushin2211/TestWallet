@@ -51,6 +51,20 @@
       <br/>
 
     </div>
+
+    <br/>
+    <br/>
+    <br/>
+    <br/>
+    <br/>
+    <br/>
+    <br/>
+    <br/>
+    <br/>
+    <br/>
+
+    <h5>&copy; 2024 Shenzhen University Blockchain Technology Research Center</h5>
+    <h5>Author：叶力涛 周志贤 陈怡</h5>
   </div>
 </template>
 

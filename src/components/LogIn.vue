@@ -1,7 +1,7 @@
 <template>
     <div id="app">
 
-        <h1>Login to Test Wallet</h1>
+        <h1>Login to the Ethereum Wallet</h1>
 
         <hr/>
 
@@ -65,6 +65,26 @@
 
         Don't have an account? <a v-on:click="CreateAccountPage">Create now</a>
 
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+
+      <h5>&copy; 2024 Shenzhen University Blockchain Technology Research Center</h5>
+      <h5>Author：叶力涛 周志贤 陈怡</h5>
+
     </div>
 </template>
 
@@ -85,7 +105,7 @@ const savedAdminPrivateKey = localStorage.getItem("adminPrivateKey");
 
 const contractAddress = data.contractAddress;
 
-const sonyAbi = require("../script/sony.json");
+const sonyAbi = require("../script/Auction.json");
 
 export default {
     data() {
@@ -518,11 +538,11 @@ export default {
         },
 
         UserInterfacePage() {
-            this.$router.push('/TestPage2')
+            this.$router.push('/UserInterface')
         },
 
         AdminPage() {
-            this.$router.push('/TestPage')
+            this.$router.push('/AdminInterface')
         },
 
         CreateAccountPage() {

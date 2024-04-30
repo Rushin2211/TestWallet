@@ -36,6 +36,15 @@
       </button>
     </p>
 
+    <div v-if="isTransferring " class="loading-overlay">
+      <div class="loading-icon">
+        <img src="../assets/transaction-processing-icon.svg" alt="Loading">
+      </div>
+      <div class="loading-text">
+        Transferring, please wait...
+      </div>
+    </div>
+
     <div v-if="isMinting" class="loading-overlay">
       <div class="loading-icon">
         <img src="../assets/minting-icon.svg" alt="Loading">
@@ -49,6 +58,30 @@
       </div>
       <div class="loading-text">For auction, please wait...</div>
     </div>
+
+    <el-dialog title="Ethereum transfer" v-model="transferFlag" width="350px" center>
+      <el-form :model="transferFrom">
+        <el-form-item label="To" :label-width="formLabelWidth">
+          <el-input v-model="transferFrom.receiverAddress" autocomplete="off"
+                    placeholder="Recipient's Address" style="width: 250px"></el-input>
+        </el-form-item>
+
+        <el-form-item label="Amount" :label-width="formLabelWidth">
+          <el-input v-model="transferFrom.amount" autocomplete="off"
+                    placeholder="Amount" style="width: 250px"></el-input>
+        </el-form-item>
+      </el-form>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <el-button @click="Cancel" style="margin-right: 20px; font-size: 16px;">
+          Cancel
+        </el-button>
+
+        <el-button type="primary" @click="confirmTransfer" style="font-size: 16px; padding: 12px 20px;">
+          Confirm
+        </el-button>
+      </div>
+    </el-dialog>
 
     <el-dialog title="Auction NFT" v-model="auctionFlag" width="380px" style="margin-top: 50px">
       <p style="text-align: center; margin: 10px 0;">Please select an NFT you want to auction:</p>
@@ -102,18 +135,24 @@
 
     <div id="foot">
       <hr/>
-      <button name="MintNFT" class="btn" @click="mintWiFiNFT">Mint NFTs</button>
+      <button name="Transfer Ethereum" class="btn" v-on:click="transfer">Transfer</button>
+      <br/>
+      <br/>
+      <button name="MintNFT" class="btn" @click="mintNFT">Mint NFTs</button>
       <br/>
       <br/>
       <button name="AuctionNFT" class="btn" @click="confirmAuctionNFT">Auction</button>
-      <!--      <br/>-->
-      <!--      <br/>-->
-      <!--      <button name="AuctionInfo" class="btn" @click="goToAuctionInfoPage">Auction Info</button>-->
+      <br/>
+      <br/>
+      <button name="AuctionInfo" class="btn" @click="goToAuctionInfoPage">Auction Info</button>
       <br/>
       <br/>
       <button name="Exit" class="btn" v-on:click="Exit">Exit</button>
       <br/>
     </div>
+
+    <h5>&copy; 2024 Shenzhen University Blockchain Technology Research Center</h5>
+    <h5>Author：叶力涛 周志贤 陈怡</h5>
 
   </div>
 </template>
@@ -129,7 +168,7 @@ const web3 = new Web3(new Web3.providers.HttpProvider(data.web3ProviderUrl));
 
 const contractAddress = data.contractAddress;
 
-const contractAbi = require("../script/sony.json");
+const contractAbi = require("../script/Auction.json");
 
 const savedAdminPrivateKey = localStorage.getItem("AdministratorPrivateKey");
 
@@ -142,6 +181,15 @@ export default {
 
   data() {
     return {
+      transferFrom: {
+        receiverAddress: null,
+        amount: null,
+      },
+
+      transferFlag: false,
+
+      isTransferring: false,
+
       accountAddress: '',
 
       isLoading: true,
@@ -169,9 +217,13 @@ export default {
 
       availableForAuctionGroup: [],
 
+      NFTAuctionEndTime: [],
+
       currentAuctionNFTs: [],
 
       selectedNFTForAuction: null,
+
+      formLabelWidth: "55px",
     };
   },
 
@@ -184,9 +236,73 @@ export default {
     this.contractInstance = await this.createContractInstance(contractAbi, contractAddress);
     this.accountBalance = await this.getBalance(this.accountAddress);
     await this.getOwnedAllNFT(this.accountAddress);
+    let currentTime = new Date().getTime() / 1000
+    for (let i = 0; i < this.NFTAuctionEndTime.length; i++) {
+      if (this.NFTAuctionEndTime[i] < currentTime && Number(this.NFTAuctionEndTime[i]) !== 0) {
+        Swal.fire({
+          html: "You have an ongoing auction that needs to be concluded. " +
+              "Please visit the <strong>Auction Info </strong>page to end it.",
+          icon: "info",
+          showCloseButton: true,
+          showCancelButton: false,
+          focusConfirm: true,
+          confirmButtonText: "OK",
+        });
+        break
+      }
+    }
   },
 
   methods: {
+    async transfer() {
+      this.transferFrom.receiverAddress = null;
+      this.transferFrom.amount = null;
+      this.transferFlag = true;
+    },
+
+    async confirmTransfer() {
+      const toAddress = this.transferFrom.receiverAddress;
+      const amount = this.transferFrom.amount;
+      if (!isAddress(toAddress)) {
+        this.showError("Invalid Ethereum address");
+        return;
+      }
+      if (amount <= 0) {
+        this.showError("Amount must be a positive number");
+        return;
+      }
+      if (amount == null) {
+        this.showError("Amount cannot be null");
+        return;
+      }
+      try {
+        this.transferFlag = false;
+        this.isTransferring = true;
+        const txCount = await web3.eth.getTransactionCount(this.accountAddress);
+        const txObject = {
+          nonce: txCount,
+          to: toAddress,
+          value: web3.utils.toWei(amount, 'ether'),
+          gasLimit: 3000000,
+          gasPrice: web3.utils.toWei('3', 'gwei'),
+        };
+        const signed = await web3.eth.accounts.signTransaction(txObject, savedAdminPrivateKey);
+        await web3.eth.sendSignedTransaction(signed.rawTransaction);
+        this.accountBalance = await this.getBalance(this.accountAddress);
+        this.isTransferring = false;
+        await Swal.fire({
+          position: "center",
+          icon: "success",
+          title: "Transfer successful",
+          showConfirmButton: false,
+          timer: 1500
+        });
+      } catch (error) {
+        this.isTransferring = false;
+        this.showError('An error occurred during the transfer.Error info:' + error);
+      }
+    },
+
     DayToSecond(Day) {
       this.durationDayValue = Number(Day);
       if(this.durationDayValue.toString().indexOf(".") !== -1) {
@@ -225,8 +341,7 @@ export default {
       return /^[1-9]\d*$/.test(num);
     },
 
-    // todo
-    async mintWiFiNFT() {
+    async mintNFT() {
       try {
         this.isMinting = true;
         const txCount = await web3.eth.getTransactionCount(this.accountAddress);
@@ -250,14 +365,13 @@ export default {
           showConfirmButton: false,
           timer: 2500
         });
-        setTimeout(this.Reload, 1100);
+        // setTimeout(this.Reload, 1100);
       } catch (error) {
         this.isMinting = false;
         this.showError(`Transaction failed: ${error.message}`);
       }
     },
 
-    // todo
     //提交拍卖数据表单
     async submitInventoryForAuction() {
       const tokenId = this.selectedNFTForAuction;
@@ -338,7 +452,7 @@ export default {
           showConfirmButton: false,
           timer: 2500
         });
-        setTimeout(this.Reload, 1100);
+        // setTimeout(this.Reload, 1100);
       } catch (error) {
         this.isAuction = false;
         this.Cancel();
@@ -354,7 +468,6 @@ export default {
       });
     },
 
-    // todo
     confirmAuctionNFT() {
       this.auctionFlag = true;
       this.selectedNFTForAuction = null;
@@ -375,15 +488,23 @@ export default {
       }
     },
 
-    // todo
     async getOwnedAllNFT(address) {
+      this.availableForAuctionGroup.length = 0;
+      this.NFTAuctionEndTime.length = 0;
+
       this.ownedNFTGroup = await this.contractInstance.methods.getAccountNFTInfo(address).call();
       console.log(this.ownedNFTGroup);
       this.ownedNFTNumber = this.ownedNFTGroup.length;
-      for (let i = 1; i < this.ownedNFTNumber + 1; i++){
-        const nftAuctionInfo = await this.contractInstance.methods.nftAuctionInfo(i).call();
+
+      for (let i = 0; i < this.ownedNFTNumber; i++){
+        const nftAuctionInfo = await this.contractInstance.methods.nftAuctionInfo(this.ownedNFTGroup[i]).call();
+
+        const auctionEndTime = nftAuctionInfo[1]
+        this.NFTAuctionEndTime.push(auctionEndTime);
+
         if (nftAuctionInfo[5] === false) {
-          this.availableForAuctionGroup.push(i);
+          console.log(i)
+          this.availableForAuctionGroup.push(this.ownedNFTGroup[i]);
         }
       }
       console.log(this.availableForAuctionGroup);
@@ -392,7 +513,7 @@ export default {
     },
 
     Cancel() {
-      this.mintFlag = false;
+      this.transferFlag = false;
       this.auctionFlag = false;
     },
 
@@ -457,6 +578,20 @@ p {
 
 hr {
   width: 350px;
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
 }
 
 .btn {
@@ -525,18 +660,6 @@ hr {
   width: 330px;
   height: 90px;
   background-color: rgb(74, 148, 232);
-  font-size: 18px;
-  color: white;
-  border: rgb(74, 148, 232);
-  border-radius: 20px;
-  text-align: center;
-}
-
-.NFTsOnSaleButton {
-  position: relative;
-  width: 330px;
-  height: 90px;
-  background-color: rgb(52, 121, 199);
   font-size: 18px;
   color: white;
   border: rgb(74, 148, 232);
