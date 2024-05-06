@@ -87,7 +87,7 @@ contract MyNFT is ERC721 {
     event AuctionStart(uint _token, uint _bottomPrice, uint _auctionEndTime);
 
     // 最高出价更新事件
-    event HigestBidRefresh(uint _tokenId, uint _highestBid, address _highestBidder);
+    event HighestBidRefresh(uint _tokenId, uint _highestBid, address _highestBidder);
 
     // 撤回出价事件
     event BidWithdraw(uint _tokenId, address _bidder, uint _bidAmount);
@@ -238,7 +238,7 @@ contract MyNFT is ERC721 {
     /*
     * @功能：出价
     * @参数（_tokenId）：出价对应的NFT的ID
-    * @事件：HigestBidRefresh
+    * @事件：HighestBidRefresh
     */
     function bid(uint _tokenId) public payable onlyRegularUser {
         // 出价时，当前的时间必须小于拍卖结束时间
@@ -265,7 +265,7 @@ contract MyNFT is ERC721 {
         nftAuctionInfo[_tokenId].bidder.push(msg.sender);
 
         // 发送最高出价更新事件
-        emit HigestBidRefresh(_tokenId, nftAuctionInfo[_tokenId].highestBid, msg.sender);
+        emit HighestBidRefresh(_tokenId, nftAuctionInfo[_tokenId].highestBid, msg.sender);
     }
 
     /*
