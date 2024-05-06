@@ -6,39 +6,74 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+// 导入ERC721.sol文件。
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 contract MyNFT is ERC721 {
+    // 定义变量、数组、映射和结构体。
+
+    // 定义一个tokenId计数器，初始值为0。
     uint public tokenIdCounter;
+
+    // 定义合约拥有者，初始值为0地址，immutable：只允许在constructor中被更改一次。
     address public immutable owner;
+
+    // 定义一个已铸造的所有NFT的tokenId列表。
     uint[] public tokenIdList;
+
+    // 定义一个正在拍卖的NFT的列表。
     uint[] public auctionNFTList;
+
+    // 定义一个所有可用于拍卖的NFT的列表。
     uint[] public availableAuctionList;
+
+    // 将address映射到布尔值，即若authorized[address]=true，则说明该地址为被授权地址。
     mapping(address => bool) public authorized;
+
+    // 定义一个结构体，用于储存NFT对应的tokenId和拥有者。
     struct FromTokenIdGetNFTData {
+        // NFT的tokenId
         uint tokenId;
+        // 该NFT的拥有者。
         address Owner;
     }
+    // 将uint映射到结构体FromTokenIdGetNFTData中的数据，用于通过NFT的tokenId来查询NFT的数据。
     mapping(uint => FromTokenIdGetNFTData) public fromTokenIdGetNFTData;
 
+    // 将address映射到数组，用于查询对应地址下的所有tokenId。
     mapping(address => uint[]) public tokenIdListOfAccount;
 
+    // 定义一个结构体，用于储存NFT对应的拍卖信息。
     struct NFTAuctionInfo {
+        // 拍卖受益人
         address payable beneficiary;
+        // 竞价者列表
         address[] bidder;
+        // 拍卖结束时间
         uint auctionEndTime;
+        // 起拍价
         uint bottomPrice;
+        // 最高出价者
         address highestBidder;
+        // 最高出价
         uint highestBid;
+        // 每个地址的待退款金额
         mapping(address => uint) pendingReturns;
+        // 是否正在拍卖
         bool isAuction;
+        // 拍卖是否结束
         bool ended;
     }
+    // 将uint映射到结构体NFTAuctionInfo中的数据，用于通过NFT的tokenId来查询NFT的拍卖数据。
     mapping(uint => NFTAuctionInfo) public nftAuctionInfo;
 
+    // 部署合约时触发的构造函数
     constructor(string memory _name, string memory _symbol) ERC721(_name, _symbol) {
+        // 将部署智能合约时选择的以太坊账户置为该智能合约的拥有者。
         owner = msg.sender;
+        // 将智能合约的拥有者添加到管理员列表中。
         authorized[owner] = true;
+        // 初始化tokenId的值。
         tokenIdCounter = 1;
     }
 
@@ -73,17 +108,23 @@ contract MyNFT is ERC721 {
     }
 
     /*
-     * @功能：铸造 ERC-721 代币（NFT）
+     * @功能：铸造 ERC-721 代币（NFT），仅管理员可调用该函数
      * @参数（_to）：NFT 接收者的以太坊地址
      * @事件：MintNFT
      */
     function mintERC721Token(address _to) public onlyAdmin {
-        uint256 newTokenId = tokenIdCounter; 
-        _mint(_to, newTokenId);  
-        tokenIdCounter ++;  
+        // 新的NFT的tokenId
+        uint256 newTokenId = tokenIdCounter;
+        // 调用ERC721.sol中的_mint函数，铸造NFT。
+        _mint(_to, newTokenId);
+        // 更新tokenIdCounter的值，为铸造下一个NFT做准备。
+        tokenIdCounter ++;
+        // 更新结构体FromTokenIdGetNFTData中对应的NFT的数据。
         fromTokenIdGetNFTData[newTokenId].tokenId = newTokenId;
         fromTokenIdGetNFTData[newTokenId].Owner = msg.sender;
+        // 将新铸造的NFT的tokenId加入到该地址下的tokenIdListOfAccount中。
         tokenIdListOfAccount[_to].push(newTokenId);
+        // 将该NFT的tokenId加入到tokenIdList中。
         tokenIdList.push(newTokenId);
 
         // 发送NFT铸造事件
@@ -91,30 +132,37 @@ contract MyNFT is ERC721 {
     }
 
     /*
-    * @功能：转移ERC-721代币
+    * @功能：转移ERC-721代币，仅管理员可调用该函数
     * @参数（_to）：接收者地址
     * @参数（_tokenId）：要转移的NFT的tokenId
     * @事件：TransferNFT
     */
     function transferERC721Token(address _to, uint _tokenId) public onlyAdmin {
+        // 转移NFT的前提是需要拥有该NFT。
         require(msg.sender == ownerOf(_tokenId), "Caller is not the owner of the NFT!");
+        // 调用ERC721.sol中的 _transfer函数，转移NFT。
         _transfer(msg.sender, _to, _tokenId);
+        // 将该NFT的tokenId从发送者的tokenIdListOfAccount中删除。
         removeValueFromTokenIdListOfAccount(_tokenId, msg.sender);
+        // 将该NFT的tokenId从可用于拍卖的NFT列表中删除。
         removeValueFromAuctionNFTList(_tokenId);
+        // 将该NFT的tokenId添加到接收者的tokenIdListOfAccount中。
         tokenIdListOfAccount[_to].push(_tokenId);
+        // 更新该NFT的拍卖信息。
         nftAuctionInfo[_tokenId].isAuction = false;
         nftAuctionInfo[_tokenId].ended = true;
 
         // 发送NFT转移事件
         emit TransferNFT(msg.sender, _to, _tokenId);
     }
- 
+
     /*
     * @功能：查询NFT的拥有者
     * @参数（_tokenId）：要查询的NFT的tokenId
     * @返回：NFT拥有者的以太坊地址
     */
     function ownerOfNFT(uint _tokenId) public view returns(address) {
+        // 调用ERC721.sol中的 ownerOf函数，查询NFT的拥有者。
         return ownerOf(_tokenId);
     }
 
@@ -136,7 +184,7 @@ contract MyNFT is ERC721 {
         for (uint i = 0; i < tokenIdListOfAccount[_address].length; i++) {
             if (tokenIdListOfAccount[_address][i] == _value) {
                 for (uint j = i; j < tokenIdListOfAccount[_address].length - 1; j++) {
-                tokenIdListOfAccount[_address][j] = tokenIdListOfAccount[_address][j + 1];
+                    tokenIdListOfAccount[_address][j] = tokenIdListOfAccount[_address][j + 1];
                 }
                 tokenIdListOfAccount[_address].pop();
             }
@@ -151,7 +199,7 @@ contract MyNFT is ERC721 {
         for (uint i = 0; i < auctionNFTList.length; i++) {
             if (auctionNFTList[i] == _value) {
                 for (uint j = i; j < auctionNFTList.length - 1; j++) {
-                auctionNFTList[j] = auctionNFTList[j + 1];
+                    auctionNFTList[j] = auctionNFTList[j + 1];
                 }
                 auctionNFTList.pop();
             }
@@ -167,24 +215,24 @@ contract MyNFT is ERC721 {
     * @事件：AuctionStart
     */
     function startAuction(
-        uint _tokenId, 
-        uint _biddingDuration, 
-        address payable _beneficiary, 
+        uint _tokenId,
+        uint _biddingDuration,
+        address payable _beneficiary,
         uint _bottomPrice
-        ) public onlyAdmin {
-            // 开始拍卖之前，对应NFT的拍卖结束时间必须为0
-            require(nftAuctionInfo[_tokenId].auctionEndTime == 0, "Auction for this NFT is already in progress");
+    ) public onlyAdmin {
+        // 开始拍卖之前，对应NFT的拍卖结束时间必须为0
+        require(nftAuctionInfo[_tokenId].auctionEndTime == 0, "Auction for this NFT is already in progress");
 
-            // 写入拍卖信息
-            nftAuctionInfo[_tokenId].auctionEndTime = block.timestamp + _biddingDuration;
-            nftAuctionInfo[_tokenId].beneficiary = _beneficiary;
-            nftAuctionInfo[_tokenId].bottomPrice = _bottomPrice;
-            nftAuctionInfo[_tokenId].isAuction = true;
-            nftAuctionInfo[_tokenId].ended = false;
-            auctionNFTList.push(_tokenId);
+        // 写入拍卖信息
+        nftAuctionInfo[_tokenId].auctionEndTime = block.timestamp + _biddingDuration;
+        nftAuctionInfo[_tokenId].beneficiary = _beneficiary;
+        nftAuctionInfo[_tokenId].bottomPrice = _bottomPrice;
+        nftAuctionInfo[_tokenId].isAuction = true;
+        nftAuctionInfo[_tokenId].ended = false;
+        auctionNFTList.push(_tokenId);
 
-            // 发送拍卖开始事件
-            emit AuctionStart(_tokenId, _bottomPrice, nftAuctionInfo[_tokenId].auctionEndTime);
+        // 发送拍卖开始事件
+        emit AuctionStart(_tokenId, _bottomPrice, nftAuctionInfo[_tokenId].auctionEndTime);
     }
 
     /*
@@ -228,7 +276,7 @@ contract MyNFT is ERC721 {
     function withdraw(uint _tokenId) public onlyRegularUser returns(bool) {
         // 撤回出价的用户不能为最高出价者
         require(msg.sender != nftAuctionInfo[_tokenId].highestBidder, "You are the highest bidder and can't withdraw your bid.");
-     
+
         // 获取待退款金额
         uint refundAmount = nftAuctionInfo[_tokenId].pendingReturns[msg.sender];
 
@@ -274,14 +322,16 @@ contract MyNFT is ERC721 {
                 if (refundAmount > 0) {
                     transferERC20(bidder, refundAmount);
                     nftAuctionInfo[_tokenId].pendingReturns[bidder] = 0;
-                 
+
                     // 发送撤回出价事件
                     emit BidWithdraw(_tokenId, bidder, refundAmount);
                 }
             }
         }
 
+        // 若最高出价者的地址不为0地址。
         if (nftAuctionInfo[_tokenId].highestBidder != address(0)) {
+            // 若最高出价大于0
             if (nftAuctionInfo[_tokenId].highestBid > 0) {
                 // 将最高出价对应的金额发送给受益人
                 transferERC20(nftAuctionInfo[_tokenId].beneficiary, nftAuctionInfo[_tokenId].highestBid);
@@ -289,8 +339,10 @@ contract MyNFT is ERC721 {
                 transferERC721Token(nftAuctionInfo[_tokenId].highestBidder, _tokenId);
             }
         }
+
+        // 若最高出价者地址为0地址，即无人出价。
         else {
-            removeValueFromNFTAuctionInfo(_tokenId);
+            removeValueFromAuctionNFTList(_tokenId);
         }
 
         // 重置该NFT的拍卖信息
@@ -299,21 +351,6 @@ contract MyNFT is ERC721 {
         nftAuctionInfo[_tokenId].highestBid = 0;
         nftAuctionInfo[_tokenId].auctionEndTime = 0;
         nftAuctionInfo[_tokenId].bottomPrice = 0;
-    }
-
-    /*
-    * @功能：删除数组中的指定元素
-    * @参数（_value）：需要删除的元素
-    */
-    function removeValueFromNFTAuctionInfo(uint _value) public {
-        for (uint i = 0; i < auctionNFTList.length; i++) {
-            if (auctionNFTList[i] == _value) {
-                for (uint j = i; j < auctionNFTList.length - 1; j++) {
-                auctionNFTList[j] = auctionNFTList[j + 1];
-                }
-                auctionNFTList.pop();
-            }
-        }
     }
 
     /*

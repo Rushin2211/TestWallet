@@ -92,7 +92,7 @@
           <button @click="Withdraw(item)" v-else class="withdraw-button">Withdraw</button>
 
           <button @click="endAuction(item)"
-                  v-if="this.isEndAuctionDisabled||(new Date().getTime() / 1000)-20<this.auctionedNFTsInfoMap[item].auctionEndTime"
+                  v-if="this.isEndAuctionDisabled||(new Date().getTime() / 1000) - 3<this.auctionedNFTsInfoMap[item].auctionEndTime"
                   class="end-auction-button-disable"
                   disabled>End
           </button>
