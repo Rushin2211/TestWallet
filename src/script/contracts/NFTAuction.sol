@@ -252,6 +252,11 @@ contract MyNFT is ERC721 {
         uint highestBid = nftAuctionInfo[_tokenId].highestBid;
         nftAuctionInfo[_tokenId].pendingReturns[highestBidder] = highestBid;
 
+        // 将当前的出价者添加到竞价者名单内
+        if(nftAuctionInfo[_tokenId].pendingReturns[msg.sender] == 0) {
+            nftAuctionInfo[_tokenId].bidder.push(msg.sender);
+        }
+
         // 更新当前最高出价
         nftAuctionInfo[_tokenId].highestBid = msg.value + nftAuctionInfo[_tokenId].pendingReturns[msg.sender];
 
@@ -260,9 +265,6 @@ contract MyNFT is ERC721 {
 
         // 更新当前的最高出价者
         nftAuctionInfo[_tokenId].highestBidder = msg.sender;
-
-        // 将当前的出价者添加到竞价者名单内
-        nftAuctionInfo[_tokenId].bidder.push(msg.sender);
 
         // 发送最高出价更新事件
         emit HighestBidRefresh(_tokenId, nftAuctionInfo[_tokenId].highestBid, msg.sender);
@@ -340,7 +342,7 @@ contract MyNFT is ERC721 {
             }
         }
 
-        // 若最高出价者地址为0地址，即无人出价。
+            // 若最高出价者地址为0地址，即无人出价。
         else {
             removeValueFromAuctionNFTList(_tokenId);
         }
