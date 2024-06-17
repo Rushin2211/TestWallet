@@ -315,6 +315,7 @@ export default {
       this.accountBalance = this.getBalance(this.accountAddress)
           .then((balance) => {
             this.accountBalance = balance;
+            console.log("Account Balance: ", balance);
             this.isLoading = false; // Set isLoading to false once balance is fetched
             localStorage.setItem("AccountBalance", balance);
           })
