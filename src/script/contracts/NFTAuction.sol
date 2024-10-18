@@ -1,6 +1,7 @@
 /*
 * @作者：周志贤
 * @日期：2024/04/28
+* @修改：2024/10/18：删除冗余的代码
 */
 
 // SPDX-License-Identifier: MIT
@@ -10,35 +11,35 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 contract MyNFT is ERC721 {
-    // 定义一个tokenId计数器，初始值为0。
+    // tokenId计数器
     uint public tokenIdCounter;
 
-    // 定义合约拥有者，初始值为0地址，immutable：只允许在constructor中被更改一次。
+    // 合约拥有者，immutable：只允许在constructor中被更改一次。
     address public immutable owner;
 
-    // 将address映射到布尔值，即若authorized[address]=true，则说明该地址为被授权地址。
+    // 若authorized[address]=true，则说明该地址为被授权地址。
     mapping(address => bool) public authorized;
 
-    // 定义一个已铸造的所有NFT的tokenId列表。
+    // 记录已铸造的所有NFT的tokenId列表
     uint[] public tokenIdList;
 
-    // 定义一个正在拍卖的NFT的列表。
+    // 记录正在拍卖的NFT的列表
     uint[] public auctionNFTList;
 
-    // 定义一个结构体，用于储存NFT对应的tokenId和拥有者。
+    // 储存NFT对应的tokenId和拥有者
     struct FromTokenIdGetNFTData {
         // NFT的tokenId
         uint tokenId;
         // 该NFT的拥有者。
         address Owner;
     }
-    // 将uint映射到结构体FromTokenIdGetNFTData中的数据，用于通过NFT的tokenId来查询NFT的数据。
+    // 通过NFT的tokenId来记录或查询NFT的数据
     mapping(uint => FromTokenIdGetNFTData) public fromTokenIdGetNFTData;
 
-    // 将address映射到数组，用于查询对应地址下的所有tokenId。
+    // 记录或查询对应地址下的所有tokenId
     mapping(address => uint[]) public tokenIdListOfAccount;
 
-    // 定义一个结构体，用于储存NFT对应的拍卖信息。
+    // NFT对应的拍卖信息
     struct NFTAuctionInfo {
         // 拍卖受益人
         address payable beneficiary;
@@ -59,7 +60,7 @@ contract MyNFT is ERC721 {
         // 拍卖是否结束
         bool ended;
     }
-    // 将uint映射到结构体NFTAuctionInfo中的数据，用于通过NFT的tokenId来查询NFT的拍卖数据。
+    // 通过NFT的tokenId来记录或查询NFT的拍卖数据
     mapping(uint => NFTAuctionInfo) public nftAuctionInfo;
 
 
@@ -79,13 +80,13 @@ contract MyNFT is ERC721 {
     event AuctionEnded(uint256 _tokenId, address _winner, uint256 _highestBid);
 
 
-    // 修饰函数，仅管理员可调用
+    // 修饰函数，仅管理员
     modifier onlyAdmin() {
         require(authorized[msg.sender] == true, "Only Admin can call this function");
         _;
     }
 
-    // 修饰函数，仅普通用户可调用
+    // 修饰函数，仅普通用户
     modifier onlyRegularUser() {
         require(msg.sender != owner && authorized[msg.sender] == false, "Only regular user can all this function");
         _;
@@ -94,13 +95,13 @@ contract MyNFT is ERC721 {
 
     // 部署合约时触发的构造函数
     constructor(string memory _name, string memory _symbol) ERC721(_name, _symbol) {
-        // 将部署智能合约时选择的以太坊账户置为该智能合约的拥有者。
+        // 将部署智能合约的以太坊地址置为智能合约的拥有者
         owner = msg.sender;
 
-        // 将智能合约的拥有者添加到管理员列表中。
+        // 设置管理员权限
         authorized[owner] = true;
 
-        // 初始化tokenId的值。
+        // 初始化tokenId
         tokenIdCounter = 1;
     }
 
@@ -165,11 +166,11 @@ contract MyNFT is ERC721 {
     }
 
     /*
-    * @功能：转移ERC20代币
+    * @功能：转移ETH代币
     * @参数（recipient）：接收者的以太坊地址
     * @参数（amount）：代币数量
     */
-    function transferERC20(address payable recipient, uint amount) public {
+    function transferETH(address payable recipient, uint amount) public {
         recipient.transfer(amount);
     }
 
@@ -215,9 +216,14 @@ contract MyNFT is ERC721 {
         require(nftAuctionInfo[_tokenId].isAuction == true, "This NFT has not yet started auctioning.");
         require(nftAuctionInfo[_tokenId].ended == false, "The auction of this NFT has ended.");
 
-        // 更新上一个最高出价者的待退款金额
+        // 获取最高出价者的信息
         address highestBidder = nftAuctionInfo[_tokenId].highestBidder;
         uint highestBid = nftAuctionInfo[_tokenId].highestBid;
+
+        // 出价者不能为当前的最高出价者
+        require(msg.sender != highestBidder, "You are the highest bidder!");
+
+        // 更新上一个最高出价者的待退款金额
         nftAuctionInfo[_tokenId].pendingReturns[highestBidder] = highestBid;
 
         // 将当前的出价者添加到竞价者名单内
@@ -251,8 +257,8 @@ contract MyNFT is ERC721 {
         uint refundAmount = nftAuctionInfo[_tokenId].pendingReturns[msg.sender];
 
         if (refundAmount > 0) {
-            // 调用transferERC20()将待退款金额返还给用户
-            transferERC20(payable(msg.sender), refundAmount);
+            // 调用transferETH()将待退款金额返还给用户
+            transferETH(payable(msg.sender), refundAmount);
 
             // 将该用户的待退款金额置为0
             nftAuctionInfo[_tokenId].pendingReturns[msg.sender] = 0;
@@ -278,10 +284,6 @@ contract MyNFT is ERC721 {
         // 调用该函数的用户（管理员）需要拥有该NFT
         require(ownerOf(_tokenId) == msg.sender, "Only the owner of the NFT can end the auction.");
 
-        // 重置该NFT的拍卖信息
-        nftAuctionInfo[_tokenId].ended = true;
-        nftAuctionInfo[_tokenId].isAuction = false;
-
         // 发送拍卖结束事件
         emit AuctionEnded(_tokenId, nftAuctionInfo[_tokenId].highestBidder, nftAuctionInfo[_tokenId].highestBid);
 
@@ -292,7 +294,7 @@ contract MyNFT is ERC721 {
                 uint refundAmount = nftAuctionInfo[_tokenId].pendingReturns[bidder];
 
                 if (refundAmount > 0) {
-                    transferERC20(bidder, refundAmount);
+                    transferETH(bidder, refundAmount);
                     nftAuctionInfo[_tokenId].pendingReturns[bidder] = 0;
 
                     // 发送撤回出价事件
@@ -306,7 +308,7 @@ contract MyNFT is ERC721 {
             // 若最高出价大于0
             if (nftAuctionInfo[_tokenId].highestBid > 0) {
                 // 将最高出价对应的金额发送给受益人
-                transferERC20(nftAuctionInfo[_tokenId].beneficiary, nftAuctionInfo[_tokenId].highestBid);
+                transferETH(nftAuctionInfo[_tokenId].beneficiary, nftAuctionInfo[_tokenId].highestBid);
                 // 将对应的NFT发送给最高出价者
                 transferERC721Token(nftAuctionInfo[_tokenId].highestBidder, _tokenId);
             }
@@ -316,6 +318,7 @@ contract MyNFT is ERC721 {
             removeValueFromAuctionNFTList(_tokenId);
 
             nftAuctionInfo[_tokenId].ended = false;
+            nftAuctionInfo[_tokenId].isAuction = false;
         }
 
         // 重置该NFT的拍卖信息
