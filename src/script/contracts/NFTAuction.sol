@@ -1,7 +1,8 @@
 /*
 * @作者：周志贤
 * @日期：2024/04/28
-* @修改：2024/10/18：删除冗余的代码
+* @修改：2024/10/18
+* @修改：2024/11/14
 */
 
 // SPDX-License-Identifier: MIT
@@ -12,7 +13,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 contract MyNFT is ERC721 {
     // tokenId计数器
-    uint public tokenIdCounter;
+    uint tokenIdCounter;
 
     // 合约拥有者，immutable：只允许在constructor中被更改一次。
     address public immutable owner;
@@ -24,7 +25,7 @@ contract MyNFT is ERC721 {
     uint[] public tokenIdList;
 
     // 记录正在拍卖的NFT的列表
-    uint[] public auctionNFTList;
+    uint[] auctionNFTList;
 
     // 储存NFT对应的tokenId和拥有者
     struct FromTokenIdGetNFTData {
@@ -141,7 +142,7 @@ contract MyNFT is ERC721 {
     * @参数（_tokenId）：要转移的NFT的tokenId
     * @事件：TransferNFT
     */
-    function transferERC721Token(address _to, uint _tokenId) public onlyAdmin {
+    function transferERC721Token(address _to, uint _tokenId) private onlyAdmin {
         // 转移NFT的前提是需要拥有该NFT。
         require(msg.sender == ownerOf(_tokenId), "Caller is not the owner of the NFT!");
 
@@ -149,10 +150,10 @@ contract MyNFT is ERC721 {
         _transfer(msg.sender, _to, _tokenId);
 
         // 将该NFT的tokenId从发送者的tokenIdListOfAccount中删除。
-        removeValueFromTokenIdListOfAccount(_tokenId, msg.sender);
+        removeItemFromTokenIdListOfAccount(_tokenId, msg.sender);
 
         // 将该NFT的tokenId从可用于拍卖的NFT列表中删除。
-        removeValueFromAuctionNFTList(_tokenId);
+        removeItemFromAuctionNFTList(_tokenId);
 
         // 将该NFT的tokenId添加到接收者的tokenIdListOfAccount中。
         tokenIdListOfAccount[_to].push(_tokenId);
@@ -166,11 +167,11 @@ contract MyNFT is ERC721 {
     }
 
     /*
-    * @功能：转移ETH代币
+    * @功能：转移ETH
     * @参数（recipient）：接收者的以太坊地址
     * @参数（amount）：代币数量
     */
-    function transferETH(address payable recipient, uint amount) public {
+    function transferETH(address payable recipient, uint amount) private {
         recipient.transfer(amount);
     }
 
@@ -213,8 +214,8 @@ contract MyNFT is ERC721 {
         require(block.timestamp <= nftAuctionInfo[_tokenId].auctionEndTime, "Auction already ended.");
 
         // 出价时，对应的NFT需要处于正在拍卖状态
-        require(nftAuctionInfo[_tokenId].isAuction == true, "This NFT has not yet started auctioning.");
-        require(nftAuctionInfo[_tokenId].ended == false, "The auction of this NFT has ended.");
+        require(nftAuctionInfo[_tokenId].isAuction == true, "The auction for this NFT has not started yet.");
+        require(nftAuctionInfo[_tokenId].ended == false, "The auction for this NFT has ended.");
 
         // 获取最高出价者的信息
         address highestBidder = nftAuctionInfo[_tokenId].highestBidder;
@@ -281,7 +282,7 @@ contract MyNFT is ERC721 {
         require(nftAuctionInfo[_tokenId].ended == false, "This auction is already been ended.");
         require(nftAuctionInfo[_tokenId].isAuction == true, "This auction is already been ended.");
 
-        // 调用该函数的用户（管理员）需要拥有该NFT
+        // 调用该函数的用户需要拥有该NFT
         require(ownerOf(_tokenId) == msg.sender, "Only the owner of the NFT can end the auction.");
 
         // 发送拍卖结束事件
@@ -315,7 +316,7 @@ contract MyNFT is ERC721 {
         }
         // 若最高出价者地址为0地址，即无人出价。
         else {
-            removeValueFromAuctionNFTList(_tokenId);
+            removeItemFromAuctionNFTList(_tokenId);
 
             nftAuctionInfo[_tokenId].ended = false;
             nftAuctionInfo[_tokenId].isAuction = false;
@@ -377,7 +378,7 @@ contract MyNFT is ERC721 {
     * @参数（_value）：需要删除的元素
     * @参数（_address）：以太坊地址
     */
-    function removeValueFromTokenIdListOfAccount(uint _value, address _address) public {
+    function removeItemFromTokenIdListOfAccount(uint _value, address _address) private {
         for (uint i = 0; i < tokenIdListOfAccount[_address].length; i++) {
             if (tokenIdListOfAccount[_address][i] == _value) {
                 for (uint j = i; j < tokenIdListOfAccount[_address].length - 1; j++) {
@@ -392,7 +393,7 @@ contract MyNFT is ERC721 {
     * @功能：删除数组中的指定元素
     * @参数（_value）：需要删除的元素
     */
-    function removeValueFromAuctionNFTList(uint _value) public {
+    function removeItemFromAuctionNFTList(uint _value) private {
         for (uint i = 0; i < auctionNFTList.length; i++) {
             if (auctionNFTList[i] == _value) {
                 for (uint j = i; j < auctionNFTList.length - 1; j++) {

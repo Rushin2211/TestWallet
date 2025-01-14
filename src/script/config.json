@@ -1,4 +1,4 @@
 {
-  "web3ProviderUrl": "http://172.31.100.218:8545",
-  "contractAddress": "0x21d400c3eF7e3FA3b9F998e2bc8C62D1065b2964"
+  "web3ProviderUrl": "http://172.31.100.175:8545",
+  "contractAddress": "0xF9FaD362508563BEf8FdE8362a800269fe02fB27"
 }
